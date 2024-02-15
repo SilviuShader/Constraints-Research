@@ -22,6 +22,22 @@ namespace LevelsWFC
                 for (var i = 0; i < targetCellsSize; i++)
                     InputExample.Cells[i] = InputExample.CellInfo.Default;
             }
+
+            var maxTileId = 0;
+            if (InputExample.Tileset != null)
+                if (InputExample.Tileset.Tiles != null)
+                    maxTileId = InputExample.Tileset.Tiles.Length - 1;
+
+            for (var i = 0; i < InputExample.Cells.Length; i++)
+            {
+                if (!InputExample.Cells[i].ContainsTile)
+                    continue;
+                if (InputExample.Cells[i].TileIndex <= maxTileId) 
+                    continue;
+
+                InputExample.Cells[i].ContainsTile = false;
+                InputExample.Cells[i].TileIndex    = -1;
+            }
         }
 
         public void ValidateGridResize(Vector3Int previousSize)

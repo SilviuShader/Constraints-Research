@@ -10,10 +10,12 @@ namespace LevelsWFC
         public struct CellInfo
         {
             public        bool     ContainsTile;
+            public        int      TileIndex;
 
             public static CellInfo Default => new()
             {
-                ContainsTile = false
+                ContainsTile = false,
+                TileIndex    = -1
             };
         }
 
@@ -21,5 +23,7 @@ namespace LevelsWFC
         public Vector3Int GridSize  = new(10, 10, 10);
         [HideInInspector]
         public CellInfo[] Cells;
+        [HideInInspector]
+        public Tileset    Tileset;
     }
 }

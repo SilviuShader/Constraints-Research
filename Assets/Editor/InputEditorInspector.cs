@@ -48,6 +48,18 @@ namespace LevelsWFC
                 inputEditor.OnValidate();
                 inputEditor.ValidateGridResize(previousGridSize);
             }
+
+            EditorGUI.BeginChangeCheck();
+            var tileset = EditorGUILayout.ObjectField("Tileset", inputEditor.InputExample.Tileset, typeof(Tileset), false) as Tileset;
+            if (EditorGUI.EndChangeCheck())
+            {
+                Undo.RecordObject(inputEditor.InputExample, "Resize Grid");
+                EditorUtility.SetDirty(inputEditor.InputExample);
+                Undo.RecordObject(inputEditor, "Resize Grid");
+                EditorUtility.SetDirty(inputEditor);
+                inputEditor.InputExample.Tileset = tileset;
+                inputEditor.OnValidate();
+            }
         }
     }
 }
