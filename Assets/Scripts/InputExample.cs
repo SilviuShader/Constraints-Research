@@ -7,16 +7,29 @@ namespace LevelsWFC
     public class InputExample : ScriptableObject
     {
         [Serializable]
-        public struct CellInfo
+        public struct CellInfo : IEquatable<CellInfo>
         {
-            public        bool     ContainsTile;
-            public        int      TileIndex;
+            public int TileIndex;
 
             public static CellInfo Default => new()
             {
-                ContainsTile = false,
                 TileIndex    = -1
             };
+
+            public bool Equals(CellInfo other)
+            {
+                return TileIndex == other.TileIndex;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is CellInfo other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                return TileIndex;
+            }
         }
 
         [HideInInspector]
@@ -25,5 +38,8 @@ namespace LevelsWFC
         public CellInfo[] Cells;
         [HideInInspector]
         public Tileset    Tileset;
+
+        public static int GridIndex(int w, int d, int h, Vector3Int gridSize) => 
+            w * (gridSize.z * gridSize.y) + d * gridSize.y + h;
     }
 }
