@@ -51,6 +51,10 @@ namespace LevelsWFC
                                 InputExample.GridIndex(w, d, h, inputEditor.InputExample.GridSize)] = newInfo;
 
                             inputEditor.TreatDebugCell(new Vector3Int(w, h, d), newInfo);
+
+                            EditorUtility.SetDirty(inputEditor.InputExample);
+                            AssetDatabase.SaveAssets();
+                            AssetDatabase.Refresh();
                         }
                     }
                 }

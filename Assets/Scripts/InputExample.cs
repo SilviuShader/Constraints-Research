@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace LevelsWFC
@@ -13,7 +14,7 @@ namespace LevelsWFC
 
             public static CellInfo Default => new()
             {
-                TileIndex    = -1
+                TileIndex = -1
             };
 
             public bool Equals(CellInfo other)
@@ -31,6 +32,7 @@ namespace LevelsWFC
                 return TileIndex;
             }
         }
+        public bool       Valid     => Cells != null && Cells.All(cell => cell.TileIndex != CellInfo.Default.TileIndex);
 
         [HideInInspector]
         public Vector3Int GridSize  = new(10, 10, 10);
