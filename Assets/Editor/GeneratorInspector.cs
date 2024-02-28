@@ -20,6 +20,9 @@ namespace LevelsWFC
 
             if (GUILayout.Button("Run"))
                 generator.Run();
+
+            if (GUILayout.Button("Clear"))
+                generator.Clear();
         }
     }
 }

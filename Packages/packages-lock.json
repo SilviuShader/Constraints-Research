@@ -74,6 +74,13 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
+    "com.unity.scripting.python": {
+      "version": "https://github.com/needle-mirror/com.unity.scripting.python.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "180d5e67026aa2ee1c873b25575ce62f9c24f6ad"
+    },
     "com.unity.settings-manager": {
       "version": "2.0.1",
       "depth": 2,

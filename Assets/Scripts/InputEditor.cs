@@ -198,10 +198,8 @@ namespace LevelsWFC
 
         private void SpawnDebugTile(Vector3Int key, InputExample.CellInfo newCell)
         {
-            var (w, d, h) = (key.x, key.z, key.y);
-            var newObject = Instantiate(InputExample.Tileset.Tiles[newCell.TileIndex], transform);
-            newObject.localPosition = new Vector3(w + 0.5f, h + 0.5f, d + 0.5f) * CellSize; // TODO: Function for this
-
+            var newObject = SpawnHelper.SpawnTile(key, InputExample.Tileset.Tiles[newCell.TileIndex], transform);
+            
             _debugTiles[key] = new TileDictionaryValue
             {
                 Transform = newObject,

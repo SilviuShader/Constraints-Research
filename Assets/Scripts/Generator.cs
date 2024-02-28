@@ -6,7 +6,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Unity.VisualScripting;
 using UnityEngine;
-
+using UnityEditor.Scripting.Python;
 
 namespace LevelsWFC
 {
@@ -33,35 +33,21 @@ namespace LevelsWFC
                 }
             };
 
-            //public override string ToString()
-            //{
-            //    var pairsStrings = new List<string>();
-
-            //    foreach (var input in Inputs)
-            //        pairsStrings.Add(PairString(input));
-
-            //    foreach (var output in Outputs)
-            //        pairsStrings.Add(PairString(output));
-
-            //    var str = string.Join(", ", pairsStrings);
-            //    return "(" + str + ")";
-            //}
-
             public string InputString()
             {
-                var pairsStrings = Inputs.Select(PairString).ToArray();
+                var pairsStrings = Inputs.Select(TuplesHelper.PairString).ToArray();
                 return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
             }
 
             public string OutputString()
             {
-                var pairsStrings = Outputs.Select(PairString).ToArray();
+                var pairsStrings = Outputs.Select(TuplesHelper.PairString).ToArray();
                 return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
             }
 
             public string InputOutputString()
             {
-                var pairsStrings = Inputs.Select(PairString).ToArray().Concat(Outputs.Select(PairString).ToArray()).ToArray();
+                var pairsStrings = Inputs.Select(TuplesHelper.PairString).ToArray().Concat(Outputs.Select(TuplesHelper.PairString).ToArray()).ToArray();
                 return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
             }
 
@@ -78,11 +64,10 @@ namespace LevelsWFC
                 result = Inputs.Aggregate(result, Vector2Int.Max);
                 return Outputs.Aggregate(result, Vector2Int.Max);
             }
-
-            private static string PairString(Vector2Int pair) =>  "(" + pair.x + ", " + pair.y + ")";
         }
 
         public InputExample InputExample = null;
+        public Vector3Int   Size         = new(15, 0, 15);
 
         public void Run()
         {
@@ -111,7 +96,11 @@ namespace LevelsWFC
 
             (tileset as IDictionary<string, object>).Add("py/object", "util_common.TileSetInfo");
             tileset.tile_ids = tileIds;
-            tileset.tile_to_text = null;
+            var tileToText = new Dictionary<int, char>();
+            foreach (var tile in tilesArray)
+                tileToText[tile] = TileCharEncoding(tile);
+            tileset.tile_to_text = tileToText;
+
             var tileToImage = new Dictionary<int, dynamic>();
 
             foreach (var tile in tilesArray)
@@ -182,62 +171,35 @@ namespace LevelsWFC
             dynamic patternInfo = new ExpandoObject();
 
             var patterns = ExtractPatterns(pattern);
-            var separatePatterns = true;
 
-            if (separatePatterns)
+            dynamic gameToPatterns = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>>();
+            var inputDictionary = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
+            foreach (var inputKey in patterns.Keys)
             {
-                dynamic gameToPatterns = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>>();
-                var inputDictionary = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-                foreach (var inputKey in patterns.Keys)
-                {
-                    var patternsDictionary = new Dictionary<string, dynamic>();
-                    foreach (var p in patterns[inputKey])
-                    {
-                        patternsDictionary[PatternToString(p)] = new Dictionary<string, Dictionary<string, object>>
-                        {
-                            { "null", new Dictionary<string, object> { { "null", null } } }
-                        };
-                    }
-
-                    var outputs = new Dictionary<string, Dictionary<string, dynamic>>()
-                    {
-                        { pattern.OutputString(), patternsDictionary }
-                    };
-                    inputDictionary[PatternToString(inputKey)] = outputs;
-                }
-
-                gameToPatterns[","] =
-                    new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>()
-                    {
-                        { pattern.InputString(), inputDictionary }
-                    };
-
-                patternInfo.game_to_patterns = gameToPatterns;
-            }
-            else
-            {
-                dynamic gameToPatterns = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-
                 var patternsDictionary = new Dictionary<string, dynamic>();
-                foreach (var inputKey in patterns.Keys)
+                foreach (var p in patterns[inputKey])
                 {
-                    foreach (var p in patterns[inputKey])
+                    patternsDictionary[PatternToString(p)] = new Dictionary<string, Dictionary<string, object>>
                     {
-                        var fullPattern = inputKey.Concat(p).ToArray();
-                        patternsDictionary[PatternToString(fullPattern)] = new Dictionary<string, Dictionary<string, object>>
-                        {
-                            { "null", new Dictionary<string, object> { { "null", null } } }
-                        };
-                    }
+                        { "null", new Dictionary<string, object> { { "null", null } } }
+                    };
                 }
 
-                gameToPatterns[","] =
-                    new Dictionary<string, Dictionary<string, dynamic>>()
-                    {
-                        { pattern.InputOutputString(), patternsDictionary }
-                    };
-                patternInfo.game_to_patterns = gameToPatterns;
+                var outputs = new Dictionary<string, Dictionary<string, dynamic>>()
+                {
+                    { pattern.OutputString(), patternsDictionary }
+                };
+                inputDictionary[PatternToString(inputKey)] = outputs;
             }
+
+            gameToPatterns[","] =
+                new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>()
+                {
+                    { pattern.InputString(), inputDictionary }
+                };
+
+            patternInfo.game_to_patterns = gameToPatterns;
+            
 
             var low = pattern.Low();
             var high = pattern.High();
@@ -247,17 +209,56 @@ namespace LevelsWFC
             patternInfo.stride_rows = 1;
             patternInfo.stride_cols = 1;
             patternInfo.dr_lo = low.y;
-            patternInfo.dr_hi = high.y; // TODO: -1?
+            patternInfo.dr_hi = high.y;
             patternInfo.dc_lo = low.x;
-            patternInfo.dc_hi = high.x; // TODO: -1?
+            patternInfo.dc_hi = high.x;
             obj.pattern_info = patternInfo;
+            obj.output_size = TuplesHelper.PairString(Size);
 
             var json = JsonConvert.SerializeObject(obj);
             File.WriteAllText(Application.dataPath + "/Python/scheme.json", json);
+            PythonRunner.EnsureInitialized();
+            try
+            {
+                PythonRunner.RunFile($"{Application.dataPath}/Python/scheme2output.py", "__main__");
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+            }
+
+            Clear();
+
+            var generatedLevel = File.ReadAllText(Application.dataPath + "/Python/output.lvl");
+            var lines = generatedLevel.Split("\n").Where(x => x.Length != 0);
+            var w = 0;
+            foreach (var line in lines)
+            {
+                var d = 0;
+                foreach (var tile in line.Select(TileCharDecoding))
+                {
+                    if (tile < 0 || tile >= InputExample.Tileset.Tiles.Length) 
+                        continue;
+
+                    SpawnTile(new Vector3Int(w, 0, d), tile);
+                    d++;
+                }
+                w++;
+            }
+        }
+
+        public void Clear()
+        {
+            foreach (Transform child in transform)
+                ObjectsHelper.DestroyObjectEditor(child.gameObject);
         }
 
         private string TileColorEncoding(int tile) => 
             Convert.ToBase64String(BitConverter.GetBytes(tile));
+
+        private char TileCharEncoding(int tile) => (char)(tile + 32);
+
+        private int TileCharDecoding(char tile) => tile - 32;
 
         private Dictionary<int[], HashSet<int[]>> ExtractPatterns(in Pattern pattern)
         {
@@ -305,5 +306,8 @@ namespace LevelsWFC
 
         private string PatternToString(int[] patternTiles) =>
             patternTiles.Length > 1 ? "(" + string.Join(", ", patternTiles) + ")" : "(" + patternTiles[0] + ",)";
+
+        private void SpawnTile(Vector3Int position, int tileIndex) =>
+            SpawnHelper.SpawnTile(position, InputExample.Tileset.Tiles[tileIndex], transform);
     }
 }

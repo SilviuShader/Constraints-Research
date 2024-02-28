@@ -1,0 +1,4 @@
+pillow
+pysat
+python-sat
+jsonpickle

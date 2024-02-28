@@ -78,13 +78,8 @@ if __name__ == '__main__':
     util_common.timer_start()
 
     parser = argparse.ArgumentParser(description='Create output from scheme.')
-
-    #parser.add_argument('--outfile', required=True, type=str, help='Output file (without extension, which will be added).')
-    #parser.add_argument('--schemefile', required=True, type=str, help='Input scheme file.')
-
     parser.add_argument('--tagfile', type=str, help='Input tag file.')
     parser.add_argument('--gamefile', type=str, help='Input game file.')
-    #parser.add_argument('--size', type=int, nargs=2, help='Level size (if no tag or game file provided.')
 
     parser.add_argument('--randomize', type=int, help='Randomize based on given number.')
     parser.add_argument('--show-path-tiles', action='store_true', help='Show path in tiles.')
@@ -114,9 +109,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    args.outfile = "output_image"
-    args.schemefile = "scheme.json"
-    args.size = [15, 15]
+    args.outfile = "./Assets/Python/output"
+    args.schemefile = "./Assets/Python/scheme.json"
 
     if args.quiet:
         sys.stdout = open(os.devnull, 'w')
@@ -138,9 +132,14 @@ if __name__ == '__main__':
 
         scheme_info.tileset.tile_ids = util_common.evaluate_dictionary_keys(scheme_info.tileset.tile_ids, 1, 0)
         scheme_info.tileset.tile_to_image = util_common.evaluate_dictionary_keys(scheme_info.tileset.tile_to_image, 1, 0)
+        scheme_info.tileset.tile_to_text = util_common.evaluate_dictionary_keys(scheme_info.tileset.tile_to_text, 1, 0)
+        
         for key1 in scheme_info.game_to_tag_to_tiles:
             for key2 in scheme_info.game_to_tag_to_tiles[key1]:
                     scheme_info.game_to_tag_to_tiles[key1][key2] = util_common.evaluate_dictionary_keys(scheme_info.game_to_tag_to_tiles[key1][key2], 1, 0)
+        size = eval(scheme_info.output_size)
+        args.size = [size[0], size[1]]
+
 
     if args.size:
         if args.tagfile or args.gamefile:
