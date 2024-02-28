@@ -41,6 +41,17 @@ namespace LevelsWFC
         [HideInInspector]
         public Tileset    Tileset;
 
+        public static bool ValidGridIndex(int w, int d, int h, Vector3Int gridSize)
+        {
+            if (w < 0 || d < 0 || h < 0)
+                return false;
+
+            if (w >= gridSize.x || d >= gridSize.z || h >= gridSize.y)
+                return false;
+
+            return true;
+        }
+
         public static int GridIndex(int w, int d, int h, Vector3Int gridSize) => 
             w * (gridSize.z * gridSize.y) + d * gridSize.y + h;
     }
