@@ -12,42 +12,34 @@ namespace LevelsWFC
 {
     public class Generator : MonoBehaviour
     {
-        struct Pattern
+        public enum PatternType
+        {
+            NoOutBlock3,
+            NeighPlus,
+            Custom
+        }
+
+        [Serializable]
+        public struct SubPattern
         {
             public Vector2Int[] Inputs;
             public Vector2Int[] Outputs;
 
-            public static Pattern Block3 => new()
-            {
-                Inputs  = new[] { Vector2Int.zero },
-                Outputs = new[]
-                {
-                    new Vector2Int(0, 1), 
-                    new Vector2Int(0, 2), 
-                    new Vector2Int(1, 0), 
-                    new Vector2Int(1, 1), 
-                    new Vector2Int(1, 2), 
-                    new Vector2Int(2, 0), 
-                    new Vector2Int(2, 1), 
-                    new Vector2Int(2, 2)
-                }
-            };
-
             public string InputString()
             {
+                if (Inputs.Length <= 0)
+                    return "None";
+
                 var pairsStrings = Inputs.Select(TuplesHelper.PairString).ToArray();
                 return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
             }
 
             public string OutputString()
             {
-                var pairsStrings = Outputs.Select(TuplesHelper.PairString).ToArray();
-                return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
-            }
+                if (Outputs.Length <= 0)
+                    return "None";
 
-            public string InputOutputString()
-            {
-                var pairsStrings = Inputs.Select(TuplesHelper.PairString).ToArray().Concat(Outputs.Select(TuplesHelper.PairString).ToArray()).ToArray();
+                var pairsStrings = Outputs.Select(TuplesHelper.PairString).ToArray();
                 return pairsStrings.Length > 1 ? "(" + string.Join(", ", pairsStrings) + ")" : "(" + pairsStrings[0] + ",)";
             }
 
@@ -66,8 +58,105 @@ namespace LevelsWFC
             }
         }
 
-        public InputExample InputExample = null;
-        public Vector3Int   Size         = new(15, 0, 15);
+        [Serializable]
+        public struct Pattern
+        {
+            public SubPattern[] SubPatterns;
+
+            public readonly Vector2Int Low()
+            {
+                var result = new Vector2Int(int.MaxValue, int.MaxValue);
+                result = SubPatterns.Select(x => x.Low()).Aggregate(result, Vector2Int.Min);
+                return result;
+            }
+
+            public readonly Vector2Int High()
+            {
+                var result = new Vector2Int(int.MinValue, int.MinValue);
+                result = SubPatterns.Select(x => x.High()).Aggregate(result, Vector2Int.Max);
+                return result;
+            }
+
+            public static Pattern Block3 => new()
+            {
+                SubPatterns = new SubPattern[]
+                {
+                    new()
+                    {
+                        Inputs = new[]
+                        {
+                            Vector2Int.zero,
+                            new Vector2Int(0, 1),
+                            new Vector2Int(0, 2),
+                            new Vector2Int(1, 0),
+                            new Vector2Int(1, 1),
+                            new Vector2Int(1, 2),
+                            new Vector2Int(2, 0),
+                            new Vector2Int(2, 1),
+                            new Vector2Int(2, 2)
+                        },
+                        Outputs = Array.Empty<Vector2Int>()
+                    }
+                }
+            };
+
+            public static Pattern NeighPlus => new()
+            {
+                SubPatterns = new SubPattern[]
+                {
+                    new()
+                    {
+                        Inputs = new[]
+                        {
+                            Vector2Int.zero
+                        },
+                        Outputs = new[]
+                        {
+                            new Vector2Int(0, 1)
+                        }
+                    },
+                    new()
+                    {
+                        Inputs = new[]
+                        {
+                            Vector2Int.zero
+                        },
+                        Outputs = new[]
+                        {
+                            new Vector2Int(1, 0)
+                        }
+                    },
+                    new()
+                    {
+                        Inputs = new[]
+                        {
+                            Vector2Int.zero
+                        },
+                        Outputs = new[]
+                        {
+                            new Vector2Int(0, -1)
+                        }
+                    },
+                    new()
+                    {
+                        Inputs = new[]
+                        {
+                            Vector2Int.zero
+                        },
+                        Outputs = new[]
+                        {
+                            new Vector2Int(-1, 0)
+                        }
+                    }
+                }
+            };
+        }
+
+        public InputExample InputExample  = null;
+        public Vector3Int   Size          = new(15, 0, 15);
+        public PatternType  PatternCells  = PatternType.NoOutBlock3;
+        
+        public Pattern      CustomPattern = Pattern.Block3;
 
         public void Run()
         {
@@ -167,44 +256,60 @@ namespace LevelsWFC
 
             // TODO: Handle tags
             // TODO: Handle different patterns
-            var pattern = Pattern.Block3;
+            var pattern = GetPattern();
             dynamic patternInfo = new ExpandoObject();
 
-            var patterns = ExtractPatterns(pattern);
-
             dynamic gameToPatterns = new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>>();
+            var topInputDictionary =
+                new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>();
             var inputDictionary = new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
-            foreach (var inputKey in patterns.Keys)
+
+            foreach (var subPattern in pattern.SubPatterns)
             {
-                var patternsDictionary = new Dictionary<string, dynamic>();
-                foreach (var p in patterns[inputKey])
+                var patterns = ExtractPatterns(subPattern);
+
+                var patternInputKey = subPattern.InputString();
+                if (!topInputDictionary.ContainsKey(patternInputKey))
+                    topInputDictionary[patternInputKey] =
+                        new Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>();
+
+                foreach (var inputKey in patterns.Keys)
                 {
-                    patternsDictionary[PatternToString(p)] = new Dictionary<string, Dictionary<string, object>>
+                    var patternsDictionary = new Dictionary<string, dynamic>();
+                    foreach (var p in patterns[inputKey])
                     {
-                        { "null", new Dictionary<string, object> { { "null", null } } }
+                        patternsDictionary[PatternToString(p)] = new Dictionary<string, Dictionary<string, object>>
+                        {
+                            { "null", new Dictionary<string, object> { { "null", null } } }
+                        };
+                    }
+
+                    var outputs = new Dictionary<string, Dictionary<string, dynamic>>()
+                    {
+                        { subPattern.OutputString(), patternsDictionary }
                     };
+                    inputDictionary[PatternToString(inputKey)] = outputs;
                 }
 
-                var outputs = new Dictionary<string, Dictionary<string, dynamic>>()
+                foreach (var elem in inputDictionary)
                 {
-                    { pattern.OutputString(), patternsDictionary }
-                };
-                inputDictionary[PatternToString(inputKey)] = outputs;
+                    if (!topInputDictionary[patternInputKey].ContainsKey(elem.Key))
+                        topInputDictionary[patternInputKey][elem.Key] = elem.Value;
+                    else
+                        foreach (var elem2 in elem.Value)
+                            if (!topInputDictionary[patternInputKey][elem.Key].ContainsKey(elem2.Key))
+                                topInputDictionary[patternInputKey][elem.Key][elem2.Key] = elem2.Value;
+                }
             }
 
-            gameToPatterns[","] =
-                new Dictionary<string, Dictionary<string, Dictionary<string, Dictionary<string, dynamic>>>>()
-                {
-                    { pattern.InputString(), inputDictionary }
-                };
+            gameToPatterns[","] = topInputDictionary;
 
+            ((IDictionary<string, object>)patternInfo).Add("py/object", "util_common.SchemePatternInfo");
             patternInfo.game_to_patterns = gameToPatterns;
             
 
             var low = pattern.Low();
             var high = pattern.High();
-
-            ((IDictionary<string, object>)patternInfo).Add("py/object", "util_common.SchemePatternInfo");
 
             patternInfo.stride_rows = 1;
             patternInfo.stride_cols = 1;
@@ -253,6 +358,21 @@ namespace LevelsWFC
                 ObjectsHelper.DestroyObjectEditor(child.gameObject);
         }
 
+        private Pattern GetPattern()
+        {
+            switch (PatternCells)
+            {
+                case PatternType.NoOutBlock3:
+                    return Pattern.Block3;
+                case PatternType.NeighPlus:
+                    return Pattern.NeighPlus;
+                case PatternType.Custom:
+                    return CustomPattern;
+            }
+
+            return CustomPattern;
+        }
+
         private string TileColorEncoding(int tile) => 
             Convert.ToBase64String(BitConverter.GetBytes(tile));
 
@@ -260,7 +380,7 @@ namespace LevelsWFC
 
         private int TileCharDecoding(char tile) => tile - 32;
 
-        private Dictionary<int[], HashSet<int[]>> ExtractPatterns(in Pattern pattern)
+        private Dictionary<int[], HashSet<int[]>> ExtractPatterns(in SubPattern pattern)
         {
             var patterns = new Dictionary<int[], HashSet<int[]>>(new SequenceComparer<int>());
 
@@ -290,8 +410,8 @@ namespace LevelsWFC
                         currentOutputPatternTiles[index++] = InputExample.ValidGridIndex(currentPos.x, currentPos.y, 0, InputExample.GridSize) ? InputExample.Cells[InputExample.GridIndex(currentPos.x, currentPos.y, 0, InputExample.GridSize)].TileIndex : -1;
                     }
 
-                    if (currentInputPatternTiles.All(x => x == -1) && currentOutputPatternTiles.All(x => x == -1))
-                        continue;
+                    //if (currentInputPatternTiles.All(x => x == -1) && currentOutputPatternTiles.All(x => x == -1))
+                    //    continue;
 
                     if (!patterns.ContainsKey(currentInputPatternTiles))
                         patterns[currentInputPatternTiles] = new HashSet<int[]>(new SequenceComparer<int>());
@@ -304,8 +424,13 @@ namespace LevelsWFC
             return patterns;
         }
 
-        private string PatternToString(int[] patternTiles) =>
-            patternTiles.Length > 1 ? "(" + string.Join(", ", patternTiles) + ")" : "(" + patternTiles[0] + ",)";
+        private string PatternToString(int[] patternTiles)
+        {
+            if (patternTiles.Length <= 0)
+                return "None";
+
+            return patternTiles.Length > 1 ? "(" + string.Join(", ", patternTiles) + ")" : "(" + patternTiles[0] + ",)";
+        }
 
         private void SpawnTile(Vector3Int position, int tileIndex) =>
             SpawnHelper.SpawnTile(position, InputExample.Tileset.Tiles[tileIndex], transform);

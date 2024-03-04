@@ -10,8 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 504f9ac715d1a6641960834a8e0aa3c6, type: 3}
-  m_Name: Tileset 1
+  m_Name: Cave
   m_EditorClassIdentifier: 
   Tiles:
-  - {fileID: 3856624494477073896, guid: c6b54de46ec230247a2e18af040ca5c2, type: 3}
   - {fileID: 3856624494477073896, guid: 02fc10bfb1b42aa4cac8b0a4de5a4097, type: 3}
+  - {fileID: 3856624494477073896, guid: b229f0e3e70cdf340b99239bf406ae65, type: 3}
+  - {fileID: 3856624494477073896, guid: ddae856c6f3eba74cbe1f327c35b04d3, type: 3}
+  - {fileID: 3856624494477073896, guid: 0b8cc5aaa7a2b354b8c12be01fcb9a09, type: 3}

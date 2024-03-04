@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 504f9ac715d1a6641960834a8e0aa3c6, type: 3}
-  m_Name: Tileset 0
+  m_Name: Flower Tiles
   m_EditorClassIdentifier: 
   Tiles:
   - {fileID: 1688265923954191265, guid: fb0e3498a3efe364daaaa990eefefeab, type: 3}
